@@ -142,9 +142,13 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
     <h2 id="toc-title">On this page</h2>
    
   <ul>
-  <li><a href="#carga-del-dataset" id="toc-carga-del-dataset" class="nav-link active" data-scroll-target="#carga-del-dataset">Carga del dataset</a></li>
+  <li><a href="#carga-de-datos" id="toc-carga-de-datos" class="nav-link active" data-scroll-target="#carga-de-datos">Carga de datos</a></li>
   <li><a href="#en-qué-consiste-este-dataset-y-sus-características" id="toc-en-qué-consiste-este-dataset-y-sus-características" class="nav-link" data-scroll-target="#en-qué-consiste-este-dataset-y-sus-características">En qué consiste este dataset y sus características</a></li>
-  <li><a href="#análisis-exploratorio-para-identificar-la-distribución-de-las-variables-usadas-en-la-base-de-datos" id="toc-análisis-exploratorio-para-identificar-la-distribución-de-las-variables-usadas-en-la-base-de-datos" class="nav-link" data-scroll-target="#análisis-exploratorio-para-identificar-la-distribución-de-las-variables-usadas-en-la-base-de-datos">Análisis exploratorio para identificar la distribución de las variables usadas en la base de datos</a></li>
+  <li><a href="#análisis-exploratorio-para-identificar-la-distribución-de-las-variables-usadas-en-la-base-de-datos" id="toc-análisis-exploratorio-para-identificar-la-distribución-de-las-variables-usadas-en-la-base-de-datos" class="nav-link" data-scroll-target="#análisis-exploratorio-para-identificar-la-distribución-de-las-variables-usadas-en-la-base-de-datos">Análisis exploratorio para identificar la distribución de las variables usadas en la base de datos</a>
+  <ul class="collapse">
+  <li><a href="#variables-continuas" id="toc-variables-continuas" class="nav-link" data-scroll-target="#variables-continuas">Variables continuas</a></li>
+  <li><a href="#variables-categoricas" id="toc-variables-categoricas" class="nav-link" data-scroll-target="#variables-categoricas">Variables categoricas</a></li>
+  </ul></li>
   <li><a href="#datos-faltantes-en-cada-uno-de-las-variables." id="toc-datos-faltantes-en-cada-uno-de-las-variables." class="nav-link" data-scroll-target="#datos-faltantes-en-cada-uno-de-las-variables.">Datos faltantes en cada uno de las variables.</a></li>
   <li><a href="#cuál-cree-que-es-el-mecanismo-inherente-a-esos-datos-faltantes" id="toc-cuál-cree-que-es-el-mecanismo-inherente-a-esos-datos-faltantes" class="nav-link" data-scroll-target="#cuál-cree-que-es-el-mecanismo-inherente-a-esos-datos-faltantes">¿Cuál cree que es el mecanismo inherente a esos datos faltantes?</a></li>
   <li><a href="#técnicas-de-tratamiento-de-datos-faltantes-vistas-en-clase" id="toc-técnicas-de-tratamiento-de-datos-faltantes-vistas-en-clase" class="nav-link" data-scroll-target="#técnicas-de-tratamiento-de-datos-faltantes-vistas-en-clase">Técnicas de tratamiento de datos faltantes (vistas en clase)</a></li>
@@ -172,19 +176,24 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 
 </header>
 
-<section id="carga-del-dataset" class="level2">
-<h2 class="anchored" data-anchor-id="carga-del-dataset">Carga del dataset</h2>
+<section id="carga-de-datos" class="level2">
+<h2 class="anchored" data-anchor-id="carga-de-datos">Carga de datos</h2>
 <div class="cell" data-execution_count="1">
+<details>
+<summary>Code</summary>
 <div class="sourceCode cell-code" id="cb1"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb1-1"><a href="#cb1-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> ucimlrepo <span class="im">import</span> fetch_ucirepo </span>
 <span id="cb1-2"><a href="#cb1-2" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> pandas <span class="im">as</span> pd</span>
 <span id="cb1-3"><a href="#cb1-3" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> seaborn <span class="im">as</span> sns</span>
 <span id="cb1-4"><a href="#cb1-4" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> matplotlib <span class="im">import</span> pyplot <span class="im">as</span> plt</span>
-<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a>auto_mpg <span class="op">=</span> fetch_ucirepo(<span class="bu">id</span><span class="op">=</span><span class="dv">9</span>) </span>
+<span id="cb1-5"><a href="#cb1-5" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> scipy <span class="im">import</span> stats</span>
+<span id="cb1-6"><a href="#cb1-6" aria-hidden="true" tabindex="-1"></a><span class="im">import</span> numpy <span class="im">as</span> np</span>
 <span id="cb1-7"><a href="#cb1-7" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a><span class="co"># data (as pandas dataframes) </span></span>
+<span id="cb1-8"><a href="#cb1-8" aria-hidden="true" tabindex="-1"></a>auto_mpg <span class="op">=</span> fetch_ucirepo(<span class="bu">id</span><span class="op">=</span><span class="dv">9</span>) </span>
 <span id="cb1-9"><a href="#cb1-9" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> pd.concat([auto_mpg.data.features, auto_mpg.data.targets], axis<span class="op">=</span><span class="dv">1</span>, join<span class="op">=</span><span class="st">'outer'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<span id="cb1-10"><a href="#cb1-10" aria-hidden="true" tabindex="-1"></a><span class="co"># data (as pandas dataframes) </span></span>
+<span id="cb1-11"><a href="#cb1-11" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb1-12"><a href="#cb1-12" aria-hidden="true" tabindex="-1"></a>data <span class="op">=</span> pd.concat([auto_mpg.data.features, auto_mpg.data.targets], axis<span class="op">=</span><span class="dv">1</span>, join<span class="op">=</span><span class="st">'outer'</span>)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 </div>
 </section>
 <section id="en-qué-consiste-este-dataset-y-sus-características" class="level2">
@@ -197,42 +206,115 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <li>horsepower: (caballos de fuerza) continua</li>
 <li>weight: (peso) continua</li>
 <li>acceleration: (acelearación) continua</li>
-<li>model year: (año modelo) multi valuada discreta</li>
+<li>model_year: (año modelo) multi valuada discreta</li>
 <li>origin: (origen) multi valuada discreta</li>
-<li>car name: (nombre de carro) texto, unico para cada fila</li>
 </ol>
-<p>398 filas y 8 columnas</p>
+<p>Este dataset consiste de 398 filas y 8 columnas</p>
 </section>
 <section id="análisis-exploratorio-para-identificar-la-distribución-de-las-variables-usadas-en-la-base-de-datos" class="level2">
 <h2 class="anchored" data-anchor-id="análisis-exploratorio-para-identificar-la-distribución-de-las-variables-usadas-en-la-base-de-datos">Análisis exploratorio para identificar la distribución de las variables usadas en la base de datos</h2>
-<p>¿será que existe relación entre las variables?</p>
-<div class="cell" title="Iowa Electricity" data-execution_count="2">
-<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a scatterplot of 'displacement' vs 'acceleration'</span></span>
-<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>sns.scatterplot(x<span class="op">=</span><span class="st">'displacement'</span>, y<span class="op">=</span><span class="st">'mpg'</span>, data<span class="op">=</span>data)</span>
-<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Add labels and title</span></span>
-<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'Displacement (cc)'</span>)</span>
-<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'mpg (s)'</span>)</span>
-<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'Scatterplot of Displacement vs mpg'</span>)</span>
-<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a><span class="co"># Display the plot</span></span>
-<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<section id="variables-continuas" class="level3">
+<h3 class="anchored" data-anchor-id="variables-continuas">Variables continuas</h3>
+<div class="cell" data-execution_count="2">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb2"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb2-1"><a href="#cb2-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> col <span class="kw">in</span> [<span class="st">"displacement"</span>, <span class="st">"horsepower"</span>, <span class="st">"weight"</span>, <span class="st">"acceleration"</span>]:</span>
+<span id="cb2-2"><a href="#cb2-2" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Create a scatterplot of --- vs 'acceleration'</span></span>
+<span id="cb2-3"><a href="#cb2-3" aria-hidden="true" tabindex="-1"></a>  sns.scatterplot(x<span class="op">=</span>col, y<span class="op">=</span><span class="st">'mpg'</span>, data<span class="op">=</span>data)</span>
+<span id="cb2-4"><a href="#cb2-4" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-5"><a href="#cb2-5" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Add labels and title</span></span>
+<span id="cb2-6"><a href="#cb2-6" aria-hidden="true" tabindex="-1"></a>  plt.xlabel(<span class="ss">f"</span><span class="sc">{</span>col<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb2-7"><a href="#cb2-7" aria-hidden="true" tabindex="-1"></a>  plt.ylabel(<span class="ss">f"mpg"</span>)</span>
+<span id="cb2-8"><a href="#cb2-8" aria-hidden="true" tabindex="-1"></a>  plt.title(<span class="ss">f"Grafica de dispersión </span><span class="sc">{</span>col<span class="sc">}</span><span class="ss"> vs mpg"</span>)</span>
+<span id="cb2-9"><a href="#cb2-9" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb2-10"><a href="#cb2-10" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Display the plot</span></span>
+<span id="cb2-11"><a href="#cb2-11" aria-hidden="true" tabindex="-1"></a>  plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-display">
-<p><img src="index_files/figure-html/cell-3-output-1.png" width="585" height="449"></p>
+<p><img src="index_files/figure-html/cell-3-output-1.png" width="585" height="450"></p>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="index_files/figure-html/cell-3-output-2.png" width="585" height="450"></p>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="index_files/figure-html/cell-3-output-3.png" width="585" height="450"></p>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="index_files/figure-html/cell-3-output-4.png" width="585" height="450"></p>
 </div>
 </div>
+<div class="cell" data-execution_count="3">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="co"># List of variables to plot</span></span>
+<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>X <span class="op">=</span> [<span class="st">'displacement'</span>, <span class="st">'horsepower'</span>, <span class="st">'weight'</span>, <span class="st">'acceleration'</span>]</span>
+<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a><span class="co"># Create a correlation matrix</span></span>
+<span id="cb3-5"><a href="#cb3-5" aria-hidden="true" tabindex="-1"></a>corr <span class="op">=</span> data[X <span class="op">+</span> [<span class="st">'mpg'</span>]].corr(method <span class="op">=</span> <span class="st">"spearman"</span>)</span>
+<span id="cb3-6"><a href="#cb3-6" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-7"><a href="#cb3-7" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-8"><a href="#cb3-8" aria-hidden="true" tabindex="-1"></a><span class="co"># Set up the matplotlib figure</span></span>
+<span id="cb3-9"><a href="#cb3-9" aria-hidden="true" tabindex="-1"></a>plt.figure(figsize<span class="op">=</span>(<span class="dv">8</span>, <span class="dv">6</span>))</span>
+<span id="cb3-10"><a href="#cb3-10" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-11"><a href="#cb3-11" aria-hidden="true" tabindex="-1"></a><span class="co"># Draw the heatmap with the mask and annotations</span></span>
+<span id="cb3-12"><a href="#cb3-12" aria-hidden="true" tabindex="-1"></a>sns.heatmap(corr, annot<span class="op">=</span><span class="va">True</span>, cmap<span class="op">=</span><span class="st">'coolwarm'</span>, vmin<span class="op">=-</span><span class="dv">1</span>, vmax<span class="op">=</span><span class="dv">1</span>,</span>
+<span id="cb3-13"><a href="#cb3-13" aria-hidden="true" tabindex="-1"></a>            xticklabels<span class="op">=</span>X <span class="op">+</span> [<span class="st">'mpg'</span>], yticklabels<span class="op">=</span>X <span class="op">+</span> [<span class="st">'mpg'</span>])</span>
+<span id="cb3-14"><a href="#cb3-14" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-15"><a href="#cb3-15" aria-hidden="true" tabindex="-1"></a><span class="co"># Add labels</span></span>
+<span id="cb3-16"><a href="#cb3-16" aria-hidden="true" tabindex="-1"></a>plt.title(<span class="st">'Correlación: Variables vs. MPG'</span>, fontsize<span class="op">=</span><span class="dv">14</span>)</span>
+<span id="cb3-17"><a href="#cb3-17" aria-hidden="true" tabindex="-1"></a>plt.xlabel(<span class="st">'Variables'</span>, fontsize<span class="op">=</span><span class="dv">12</span>)</span>
+<span id="cb3-18"><a href="#cb3-18" aria-hidden="true" tabindex="-1"></a>plt.ylabel(<span class="st">'Variables'</span>, fontsize<span class="op">=</span><span class="dv">12</span>)</span>
+<span id="cb3-19"><a href="#cb3-19" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb3-20"><a href="#cb3-20" aria-hidden="true" tabindex="-1"></a><span class="co"># Show the plot</span></span>
+<span id="cb3-21"><a href="#cb3-21" aria-hidden="true" tabindex="-1"></a>plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-display">
+<p><img src="index_files/figure-html/cell-4-output-1.png" width="641" height="528"></p>
+</div>
+</div>
+</section>
+<section id="variables-categoricas" class="level3">
+<h3 class="anchored" data-anchor-id="variables-categoricas">Variables categoricas</h3>
+<div class="cell" data-execution_count="4">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb4"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb4-1"><a href="#cb4-1" aria-hidden="true" tabindex="-1"></a><span class="cf">for</span> col <span class="kw">in</span> [<span class="st">"model_year"</span>, <span class="st">"origin"</span>, <span class="st">"cylinders"</span>]:</span>
+<span id="cb4-2"><a href="#cb4-2" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb4-3"><a href="#cb4-3" aria-hidden="true" tabindex="-1"></a>  sns.violinplot(x<span class="op">=</span>col, y<span class="op">=</span><span class="st">'mpg'</span>, bw_adjust<span class="op">=</span><span class="fl">.5</span>, inner<span class="op">=</span><span class="st">"stick"</span>, data<span class="op">=</span>data)</span>
+<span id="cb4-4"><a href="#cb4-4" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Add labels and title</span></span>
+<span id="cb4-5"><a href="#cb4-5" aria-hidden="true" tabindex="-1"></a>  plt.xlabel(<span class="ss">f"</span><span class="sc">{</span>col<span class="sc">}</span><span class="ss">"</span>)</span>
+<span id="cb4-6"><a href="#cb4-6" aria-hidden="true" tabindex="-1"></a>  plt.ylabel(<span class="ss">f"mpg"</span>)</span>
+<span id="cb4-7"><a href="#cb4-7" aria-hidden="true" tabindex="-1"></a>  plt.title(<span class="ss">f"Grafica de dispersión </span><span class="sc">{</span>col<span class="sc">}</span><span class="ss"> vs mpg"</span>)</span>
+<span id="cb4-8"><a href="#cb4-8" aria-hidden="true" tabindex="-1"></a>  </span>
+<span id="cb4-9"><a href="#cb4-9" aria-hidden="true" tabindex="-1"></a>  <span class="co"># Display the plot</span></span>
+<span id="cb4-10"><a href="#cb4-10" aria-hidden="true" tabindex="-1"></a>  plt.show()</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
+<div class="cell-output cell-output-display">
+<p><img src="index_files/figure-html/cell-5-output-1.png" width="585" height="450"></p>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="index_files/figure-html/cell-5-output-2.png" width="585" height="450"></p>
+</div>
+<div class="cell-output cell-output-display">
+<p><img src="index_files/figure-html/cell-5-output-3.png" width="585" height="450"></p>
+</div>
+</div>
+</section>
 </section>
 <section id="datos-faltantes-en-cada-uno-de-las-variables." class="level2">
 <h2 class="anchored" data-anchor-id="datos-faltantes-en-cada-uno-de-las-variables.">Datos faltantes en cada uno de las variables.</h2>
 <p>Porcentaje de NA’s para cada columna</p>
-<div class="cell" data-execution_count="3">
-<div class="sourceCode cell-code" id="cb3"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb3-1"><a href="#cb3-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> itables <span class="im">import</span> show</span>
-<span id="cb3-2"><a href="#cb3-2" aria-hidden="true" tabindex="-1"></a>tbl <span class="op">=</span> data.isna().<span class="bu">sum</span>()<span class="op">/</span>data.shape[<span class="dv">0</span>]<span class="op">*</span><span class="dv">100</span></span>
-<span id="cb3-3"><a href="#cb3-3" aria-hidden="true" tabindex="-1"></a></span>
-<span id="cb3-4"><a href="#cb3-4" aria-hidden="true" tabindex="-1"></a>show(tbl)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+<div class="cell" data-execution_count="5">
+<details>
+<summary>Code</summary>
+<div class="sourceCode cell-code" id="cb5"><pre class="sourceCode python code-with-copy"><code class="sourceCode python"><span id="cb5-1"><a href="#cb5-1" aria-hidden="true" tabindex="-1"></a><span class="im">from</span> itables <span class="im">import</span> show</span>
+<span id="cb5-2"><a href="#cb5-2" aria-hidden="true" tabindex="-1"></a>tbl <span class="op">=</span> data.isna().<span class="bu">sum</span>()<span class="op">/</span>data.shape[<span class="dv">0</span>]<span class="op">*</span><span class="dv">100</span></span>
+<span id="cb5-3"><a href="#cb5-3" aria-hidden="true" tabindex="-1"></a></span>
+<span id="cb5-4"><a href="#cb5-4" aria-hidden="true" tabindex="-1"></a>show(tbl)</span></code><button title="Copy to Clipboard" class="code-copy-button"><i class="bi"></i></button></pre></div>
+</details>
 <div class="cell-output cell-output-display">
 
-<table id="itables_01bc6495_7099_4930_938c_0efcac9a81f0" class="display nowrap" data-quarto-disable-processing="true" style="table-layout:auto;width:auto;margin:auto;caption-side:bottom">
+<table id="itables_d88de4ab_6479_48f2_96c1_c7cec0f195ea" class="display nowrap" data-quarto-disable-processing="true" style="table-layout:auto;width:auto;margin:auto;caption-side:bottom">
 <thead>
     <tr style="text-align: right;">
       <th></th>
@@ -245,7 +327,7 @@ pre > code.sourceCode > span > a:first-child::before { text-decoration: underlin
 <script type="module">
     import {DataTable, jQuery as $} from 'https://www.unpkg.com/dt_for_itables@2.0.1/dt_bundle.js';
 
-    document.querySelectorAll("#itables_01bc6495_7099_4930_938c_0efcac9a81f0:not(.dataTable)").forEach(table => {
+    document.querySelectorAll("#itables_d88de4ab_6479_48f2_96c1_c7cec0f195ea:not(.dataTable)").forEach(table => {
         // Define the table data
         const data = [["displacement", 0.0], ["cylinders", 0.0], ["horsepower", 1.507538], ["weight", 0.0], ["acceleration", 0.0], ["model_year", 0.0], ["origin", 0.0], ["mpg", 0.0]];
 

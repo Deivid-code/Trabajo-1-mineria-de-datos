@@ -4,7 +4,7 @@
     "href": "index.html",
     "title": "Mineria de datos",
     "section": "",
-    "text": "from ucimlrepo import fetch_ucirepo \nimport pandas as pd\nimport seaborn as sns\nfrom matplotlib import pyplot as plt\n\nauto_mpg = fetch_ucirepo(id=9) \n\n# data (as pandas dataframes) \n\ndata = pd.concat([auto_mpg.data.features, auto_mpg.data.targets], axis=1, join='outer')"
+    "text": "Code\nfrom ucimlrepo import fetch_ucirepo \nimport pandas as pd\nimport seaborn as sns\nfrom matplotlib import pyplot as plt\nfrom scipy import stats\nimport numpy as np\n\nauto_mpg = fetch_ucirepo(id=9) \n\n# data (as pandas dataframes) \n\ndata = pd.concat([auto_mpg.data.features, auto_mpg.data.targets], axis=1, join='outer')"
   },
   {
     "objectID": "index.html#carga-del-dataset",
@@ -18,21 +18,21 @@
     "href": "index.html#en-qué-consiste-este-dataset-y-sus-características",
     "title": "Mineria de datos",
     "section": "En qué consiste este dataset y sus características",
-    "text": "En qué consiste este dataset y sus características\nLos datos se refieren al consumo de combustible en millas por galón en ciudad, que se puede predecir en función de 3 atributos discretos multivariados y 5 atributos continuos.\n\nmpg: (millas por galon) continua\ncylinders: (cilindros) multi valuada discreta\ndisplacement: (desplazamiento) continua\nhorsepower: (caballos de fuerza) continua\nweight: (peso) continua\nacceleration: (acelearación) continua\nmodel year: (año modelo) multi valuada discreta\norigin: (origen) multi valuada discreta\ncar name: (nombre de carro) texto, unico para cada fila\n\n398 filas y 8 columnas"
+    "text": "En qué consiste este dataset y sus características\nLos datos se refieren al consumo de combustible en millas por galón en ciudad, que se puede predecir en función de 3 atributos discretos multivariados y 5 atributos continuos.\n\nmpg: (millas por galon) continua\ncylinders: (cilindros) multi valuada discreta\ndisplacement: (desplazamiento) continua\nhorsepower: (caballos de fuerza) continua\nweight: (peso) continua\nacceleration: (acelearación) continua\nmodel_year: (año modelo) multi valuada discreta\norigin: (origen) multi valuada discreta\n\nEste dataset consiste de 398 filas y 8 columnas"
   },
   {
     "objectID": "index.html#análisis-exploratorio-para-identificar-la-distribución-de-las-variables-usadas-en-la-base-de-datos",
     "href": "index.html#análisis-exploratorio-para-identificar-la-distribución-de-las-variables-usadas-en-la-base-de-datos",
     "title": "Mineria de datos",
     "section": "Análisis exploratorio para identificar la distribución de las variables usadas en la base de datos",
-    "text": "Análisis exploratorio para identificar la distribución de las variables usadas en la base de datos\n¿será que existe relación entre las variables?\n\n# Create a scatterplot of 'displacement' vs 'acceleration'\nsns.scatterplot(x='displacement', y='mpg', data=data)\n\n# Add labels and title\nplt.xlabel('Displacement (cc)')\nplt.ylabel('mpg (s)')\nplt.title('Scatterplot of Displacement vs mpg')\n\n# Display the plot\nplt.show()"
+    "text": "Análisis exploratorio para identificar la distribución de las variables usadas en la base de datos\n\nVariables continuas\n\n\nCode\nfor col in [\"displacement\", \"horsepower\", \"weight\", \"acceleration\"]:\n  # Create a scatterplot of --- vs 'acceleration'\n  sns.scatterplot(x=col, y='mpg', data=data)\n  \n  # Add labels and title\n  plt.xlabel(f\"{col}\")\n  plt.ylabel(f\"mpg\")\n  plt.title(f\"Grafica de dispersión {col} vs mpg\")\n  \n  # Display the plot\n  plt.show()\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\n\nCode\n# List of variables to plot\nX = ['displacement', 'horsepower', 'weight', 'acceleration']\n\n# Create a correlation matrix\ncorr = data[X + ['mpg']].corr(method = \"spearman\")\n\n\n# Set up the matplotlib figure\nplt.figure(figsize=(8, 6))\n\n# Draw the heatmap with the mask and annotations\nsns.heatmap(corr, annot=True, cmap='coolwarm', vmin=-1, vmax=1,\n            xticklabels=X + ['mpg'], yticklabels=X + ['mpg'])\n\n# Add labels\nplt.title('Correlación: Variables vs. MPG', fontsize=14)\nplt.xlabel('Variables', fontsize=12)\nplt.ylabel('Variables', fontsize=12)\n\n# Show the plot\nplt.show()\n\n\n\n\n\n\n\nVariables categoricas\n\n\nCode\nfor col in [\"model_year\", \"origin\", \"cylinders\"]:\n  \n  sns.violinplot(x=col, y='mpg', bw_adjust=.5, inner=\"stick\", data=data)\n  # Add labels and title\n  plt.xlabel(f\"{col}\")\n  plt.ylabel(f\"mpg\")\n  plt.title(f\"Grafica de dispersión {col} vs mpg\")\n  \n  # Display the plot\n  plt.show()"
   },
   {
     "objectID": "index.html#datos-faltantes-en-cada-uno-de-las-variables.",
     "href": "index.html#datos-faltantes-en-cada-uno-de-las-variables.",
     "title": "Mineria de datos",
     "section": "Datos faltantes en cada uno de las variables.",
-    "text": "Datos faltantes en cada uno de las variables.\nPorcentaje de NA’s para cada columna\n\nfrom itables import show\ntbl = data.isna().sum()/data.shape[0]*100\n\nshow(tbl)\n\n\n\n\n    \n      \n      0\n    \n  Loading... (need help?)"
+    "text": "Datos faltantes en cada uno de las variables.\nPorcentaje de NA’s para cada columna\n\n\nCode\nfrom itables import show\ntbl = data.isna().sum()/data.shape[0]*100\n\nshow(tbl)\n\n\n\n\n\n    \n      \n      0\n    \n  Loading... (need help?)"
   },
   {
     "objectID": "index.html#cuál-cree-que-es-el-mecanismo-inherente-a-esos-datos-faltantes",
@@ -61,5 +61,12 @@
     "title": "About",
     "section": "",
     "text": "About this site\n\n1 + 1\n\n[1] 2"
+  },
+  {
+    "objectID": "index.html#carga-de-datos",
+    "href": "index.html#carga-de-datos",
+    "title": "Mineria de datos",
+    "section": "",
+    "text": "Code\nfrom ucimlrepo import fetch_ucirepo \nimport pandas as pd\nimport seaborn as sns\nfrom matplotlib import pyplot as plt\nfrom scipy import stats\nimport numpy as np\n\nauto_mpg = fetch_ucirepo(id=9) \n\n# data (as pandas dataframes) \n\ndata = pd.concat([auto_mpg.data.features, auto_mpg.data.targets], axis=1, join='outer')"
   }
 ]

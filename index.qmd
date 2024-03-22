@@ -1,14 +1,20 @@
 ---
 title: "Mineria de datos"
+format:
+  html:
+    code-fold: true
+    code-summary: "Ver codigo"
 ---
 
-## Carga del dataset
+## Carga de datos
 
 ```{python}
 from ucimlrepo import fetch_ucirepo 
 import pandas as pd
 import seaborn as sns
 from matplotlib import pyplot as plt
+from scipy import stats
+import numpy as np
 
 auto_mpg = fetch_ucirepo(id=9) 
 
@@ -27,29 +33,67 @@ Los datos se refieren al consumo de combustible en millas por galón en ciudad, 
 4.  horsepower: (caballos de fuerza) continua
 5.  weight: (peso) continua
 6.  acceleration: (acelearación) continua
-7.  model year: (año modelo) multi valuada discreta
+7.  model_year: (año modelo) multi valuada discreta
 8.  origin: (origen) multi valuada discreta
-9.  car name: (nombre de carro) texto, unico para cada fila
 
-398 filas y 8 columnas
+Este dataset consiste de 398 filas y 8 columnas
 
 ## Análisis exploratorio para identificar la distribución de las variables usadas en la base de datos
 
-¿será que existe relación entre las variables?
+### Variables continuas
+```{python echo=FALSE}
+for col in ["displacement", "horsepower", "weight", "acceleration"]:
+  # Create a scatterplot of --- vs 'acceleration'
+  sns.scatterplot(x=col, y='mpg', data=data)
+  
+  # Add labels and title
+  plt.xlabel(f"{col}")
+  plt.ylabel(f"mpg")
+  plt.title(f"Grafica de dispersión {col} vs mpg")
+  
+  # Display the plot
+  plt.show()
+  
+```
 
 ```{python}
-#| title: Iowa Electricity
+# List of variables to plot
+X = ['displacement', 'horsepower', 'weight', 'acceleration']
 
-# Create a scatterplot of 'displacement' vs 'acceleration'
-sns.scatterplot(x='displacement', y='mpg', data=data)
+# Create a correlation matrix
+corr = data[X + ['mpg']].corr(method = "spearman")
 
-# Add labels and title
-plt.xlabel('Displacement (cc)')
-plt.ylabel('mpg (s)')
-plt.title('Scatterplot of Displacement vs mpg')
 
-# Display the plot
+# Set up the matplotlib figure
+plt.figure(figsize=(8, 6))
+
+# Draw the heatmap with the mask and annotations
+sns.heatmap(corr, annot=True, cmap='coolwarm', vmin=-1, vmax=1,
+            xticklabels=X + ['mpg'], yticklabels=X + ['mpg'])
+
+# Add labels
+plt.title('Correlación: Variables vs. MPG', fontsize=14)
+plt.xlabel('Variables', fontsize=12)
+plt.ylabel('Variables', fontsize=12)
+
+# Show the plot
 plt.show()
+```
+
+### Variables categoricas
+
+```{python echo=FALSE}
+for col in ["model_year", "origin", "cylinders"]:
+  
+  sns.violinplot(x=col, y='mpg', bw_adjust=.5, inner="stick", data=data)
+  # Add labels and title
+  plt.xlabel(f"{col}")
+  plt.ylabel(f"mpg")
+  plt.title(f"Grafica de dispersión {col} vs mpg")
+  
+  # Display the plot
+  plt.show()
+  
 ```
 
 ## Datos faltantes en cada uno de las variables.
