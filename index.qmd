@@ -2,9 +2,7 @@
 title: "Mineria de datos"
 ---
 
-
-
-## Carga del dataset 
+## Carga del dataset
 
 ```{python}
 from ucimlrepo import fetch_ucirepo 
@@ -19,31 +17,25 @@ auto_mpg = fetch_ucirepo(id=9)
 data = pd.concat([auto_mpg.data.features, auto_mpg.data.targets], axis=1, join='outer')
 ```
 
-
 ## En qué consiste este dataset y sus características
 
 Los datos se refieren al consumo de combustible en millas por galón en ciudad, que se puede predecir en función de 3 atributos discretos multivariados y 5 atributos continuos.
 
-
-
-1. mpg: (millas por galon) continua 
-2. cylinders: (cilindros) multi valuada discreta 
-3. displacement: (desplazamiento) continua
-4. horsepower: (caballos de fuerza) continua 
-5. weight: (peso) continua 
-6. acceleration: (acelearación) continua 
-7. model year: (año modelo) multi valuada discreta
-8. origin: (origen) multi valuada discreta
-9. car name: (nombre de carro) texto, unico para cada fila
-
+1.  mpg: (millas por galon) continua
+2.  cylinders: (cilindros) multi valuada discreta
+3.  displacement: (desplazamiento) continua
+4.  horsepower: (caballos de fuerza) continua
+5.  weight: (peso) continua
+6.  acceleration: (acelearación) continua
+7.  model year: (año modelo) multi valuada discreta
+8.  origin: (origen) multi valuada discreta
+9.  car name: (nombre de carro) texto, unico para cada fila
 
 398 filas y 8 columnas
 
-
-## Análisis exploratorio para identificar la distribución de las variables usadas en la base de datos 
+## Análisis exploratorio para identificar la distribución de las variables usadas en la base de datos
 
 ¿será que existe relación entre las variables?
-
 
 ```{python}
 #| title: Iowa Electricity
@@ -60,8 +52,6 @@ plt.title('Scatterplot of Displacement vs mpg')
 plt.show()
 ```
 
-
-
 ## Datos faltantes en cada uno de las variables.
 
 Porcentaje de NA's para cada columna
@@ -73,7 +63,6 @@ tbl = data.isna().sum()/data.shape[0]*100
 show(tbl)
 ```
 
-
 ## ¿Cuál cree que es el mecanismo inherente a esos datos faltantes?
 
 Solo la columna "horsepower" contiene datos faltantes, esta columna contiene los caballos de fuerza de cada automovil
@@ -81,7 +70,6 @@ Solo la columna "horsepower" contiene datos faltantes, esta columna contiene los
 ## Técnicas de tratamiento de datos faltantes (vistas en clase)
 
 ok
-
 
 ## Variación en la distribución de los datos al aplicar las técnicas de imputación de datos
 

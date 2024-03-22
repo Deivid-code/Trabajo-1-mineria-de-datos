@@ -12,7 +12,7 @@ website:
 format:
   html:
     theme: cosmo
-    css: styles.css
+    css: misc/styles.css
     toc: true
 
 editor: visual
