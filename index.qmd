@@ -41,6 +41,7 @@ Este dataset consiste de 398 filas y 8 columnas
 ## Análisis exploratorio para identificar la distribución de las variables usadas en la base de datos
 
 ### Variables continuas
+
 ```{python echo=FALSE}
 for col in ["displacement", "horsepower", "weight", "acceleration"]:
   # Create a scatterplot of --- vs 'acceleration'
@@ -109,7 +110,7 @@ show(tbl)
 
 ## ¿Cuál cree que es el mecanismo inherente a esos datos faltantes?
 
-Solo la columna "horsepower" contiene datos faltantes, esta columna contiene los caballos de fuerza de cada automovil
+Solo la columna "horsepower" contiene datos faltantes, esta columna contiene los caballos de fuerza de cada automóvil.
 
 ## Técnicas de tratamiento de datos faltantes (vistas en clase)
 

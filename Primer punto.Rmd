@@ -1,0 +1,62 @@
+---
+title: "Primer punto"
+author: "Deivid Zhang Figueroa"
+date: "2024-03-24"
+output: pdf_document
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Librerías
+```{python}
+import pandas as pd
+from summarytools import dfSummary
+```
+
+
+# 1 A partir del dataset ruidoso.txt realice los siguientes análisis: 
+
+## a. Cargue y explore el dataset explicando en qué consiste y las características que posee el mismo. 
+
+```{python}
+ruidoso = pd.read_csv("data/ruidoso.txt")
+```
+
+```{python}
+dfSummary(ruidoso)
+```
+
+
+## b. Realice un breve análisis exploratorio para identificar la distribución de las variables usadas en la base de datos ¿será que existe relación entre las variables?
+
+```{r}
+
+```
+
+
+
+## c. Verifique si existen problemas de datos atípicos en cada una de las variables usando las metodologías de detección a nivel univariado.
+
+```{r}
+
+```
+
+
+
+## d. ¿Se detectan valores atípicos a nivel multivariado?
+
+```{r}
+
+```
+
+
+
+## e. Para el caso univariado, escoja una variable y realice un análisis sobre las implicaciones que tiene realizar diferentes tratamientos a los datos atípicos en la distribución de la respectiva variable. 
+
+```{r}
+
+```
+
+
