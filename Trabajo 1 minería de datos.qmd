@@ -1,0 +1,884 @@
+---
+jupyter: python3
+---
+
+# Librerías
+
+```{python}
+import pandas as pd
+import numpy as np
+
+# Para hacer resumen del df
+from summarytools import dfSummary
+
+# Estadísticas
+from statistics import median
+from scipy.stats import zscore
+from pyod.models.mad import MAD
+from scipy.stats import median_abs_deviation
+from scipy.spatial import distance # Para distancia de Mahalanobis
+from scipy.stats.mstats import winsorize
+
+# scikit-learn
+from sklearn.neighbors import LocalOutlierFactor
+from sklearn.ensemble import IsolationForest
+
+# Para graficar
+import matplotlib.pyplot as plt
+import seaborn as sns
+```
+
+# 1. A partir del dataset ruidoso.txt realice los siguientes análisis:
+
+## a. Cargue y explore el dataset explicando en qué consiste y las características que posee el mismo.
+
+```{python}
+ruidoso = pd.read_csv("data/ruidoso.txt")
+```
+
+Se usa la función **read_csv** de pandas para leer la información contenida en el archivo ruidoso.txt, y se guarda esta en un objeto llamado **ruidoso**.
+
+```{python}
+dfSummary(ruidoso, is_collapsible=False)
+```
+
+A continuación se crea una función de usuario para verificar si una lista de valores son todos consecutivos y distintos entre sí.
+
+```{python}
+def son_diferentes_consecutivos(lista):
+    for i in range(len(lista) - 1):
+        if lista[i] == lista[i + 1]:
+            return False
+        if lista[i] + 1 != lista[i + 1]:
+            return False
+    return True
+
+# Verificar si los valores son diferentes y consecutivos
+variable = "Unnamed: 0"
+if son_diferentes_consecutivos(ruidoso[variable]):
+    print(f"Los valores de la variable {variable} son diferentes y consecutivos.")
+else:
+    print(f"Los valores de la variable {variable} no son diferentes y consecutivos.")
+```
+
+Las variables en este archivo parecen representar diferentes tipos de ruido (presumiblemente en diferentes áreas o ubicaciones), y los valores numéricos parecen ser mediciones de niveles de ruido en decibelios (dB) en diferentes condiciones ambientales.
+
+Una descripción tentativa de las variables podría ser:
+
+- Road_55dB: Esta variable parece representar mediciones de ruido provenientes de carreteras con un nivel de 55 decibelios (dB).
+
+- Road_60dB: Esta variable parece representar mediciones de ruido provenientes de carreteras con un nivel de 60 decibelios (dB).
+
+- Railways_65dB: Esta variable parece representar mediciones de ruido provenientes de ferrocarriles con un nivel de 65 decibelios (dB).
+
+- Industry_65dB: Esta variable parece representar mediciones de ruido provenientes de industrias con un nivel de 65 decibelios (dB).
+
+Con la ayuda de la función **dfSummary**, se obtiene un resumen del dataframe **ruidoso**. se puede observar que este dataframe tiene una dimensión de 66 filas y 5 columnas, no tiene duplicados y las 5 variables son numéricas, sin embargo, la primera variable **Unnamed: 0** contiene 66 valores distintos que va desde 1 hasta 66 (verificado con la función de usuario), por lo que en realidad esta variable es un índice del dataframe y no una variable como tal. Por último, se puede observar que la variable **Industry_65dB** tiene un valor faltante, y dicho valor faltante está afectando la salida de los estadísticos de resumen tales como la media y la mediana de esta variable, por lo tanto, se usará otra función para conocer los estadísticos de resumen de esta.
+
+```{python}
+ruidoso.set_index('Unnamed: 0', drop=True, inplace=True)
+ruidoso.index.name = None 
+ruidoso
+```
+
+Del anterior código, la variable **Unnamed: 0** se transformó en índece.
+
+```{python}
+ruidoso.describe()
+```
+
+Usando la función **describe** se obtiene los estadísticos de resumen para la variable **Industry_65dB** que no se pudo obtener usando la función **dfSummary** debido el valor faltante. De esta forma, se puede observar que la media de estas 4 variables numéricas es mayor a la mediana, por lo que se espera que la distribución de cada una de estas variables sea sesgada hacia la derecha como visto en los histogramas de la función **dfSummary**. También, se puede observar que la variabilidad presente en cada una de estas variables es relativamente alta. Por lo último, también se tiene el mínimo, los percentiles, y el máximo de cada una de las variables.
+
+## b. Realice un breve análisis exploratorio para identificar la distribución de las variables usadas en la base de datos ¿será que existe relación entre las variables?
+
+```{python}
+# Crear una figura y ejes utilizando subplots
+fig, axes = plt.subplots(2, 2, figsize=(10, 10))
+
+# Crear gráficos de distribución para cada variable en la cuadrícula de ejes
+sns.histplot(ruidoso['Road_55dB'], kde=True, ax=axes[0, 0])
+axes[0, 0].set_title('Road_55dB')
+
+sns.histplot(ruidoso['Road_60dB'], kde=True, ax=axes[0, 1])
+axes[0, 1].set_title('Road_60dB')
+
+sns.histplot(ruidoso['Railways_65dB'], kde=True, ax=axes[1, 0])
+axes[1, 0].set_title('Railways_65dB')
+
+sns.histplot(ruidoso['Industry_65dB'], kde=True, ax=axes[1, 1])
+axes[1, 1].set_title('Industry_65dB')
+
+plt.show()
+```
+
+De las anteriores gráficas, se puede observar que la distribución de cada una de las variables tienen formas muy parecidas, especialmente entre las variables **Road_55dB** y **Road_60dB**. Por lo tanto, se puede creer que estas variables tengan algún tipo de relación, para esto, se usará gráficas de dispersión y medidas de correlación.
+
+```{python}
+sns.pairplot(ruidoso,
+             corner=1,
+             diag_kind=None)
+plt.show()
+```
+
+Del anterior código se creó gráficos de dispersión por pares con la ayuda de la función **pairplot** de **seaborn**. Aquí, se puede ver claramente que las variables **Road_60dB** y **Road_55dB** tienen una relación lineal, mientras que las otras combinaciones de las variables no tienen una relación lineal. Por último, se puede observar que existen valores atípicos a nivel bivariado.
+
+```{python}
+sns.heatmap(ruidoso.corr(method="spearman"), annot=True)
+```
+
+Teniendo en cuenta el anterior análisis, se empleó la medida de correlación de spearman para cuantificar la correlación existente entre las variables. Se puede observar que las variables con más correlación son **Road_60dB** y **Road_55dB** con un valor de 0.96, mientras que la correlación en las otras variables no superan 0.4, es decir, tienen una correlación relativamente débil.
+
+## c. Verifique si existen problemas de datos atípicos en cada una de las variables usando las metodologías de detección a nivel univariado.
+
+### Boxplots
+
+```{python}
+fig, axes = plt.subplots(1, 2, sharex=False, figsize=(10,6))
+
+axes[0].set_title("Boxplot de Road_55dB")
+axes[1].set_title("Boxplot de Road_60dB")
+
+sns.boxplot(ax=axes[0], data = ruidoso, x = "Road_55dB")
+sns.boxplot(ax=axes[1], data = ruidoso, x = "Road_60dB")
+
+plt.show()
+```
+
+```{python}
+fig, axes = plt.subplots(1, 2, sharex=False, figsize=(10,6))
+
+axes[0].set_title("Boxplot de Railways_65dB")
+axes[1].set_title("Boxplot de Industry_65dB")
+
+sns.boxplot(ax=axes[0], data = ruidoso, x = "Railways_65dB")
+sns.boxplot(ax=axes[1], data = ruidoso, x = "Industry_65dB")
+
+plt.show()
+```
+
+Usando los boxplots se puede observar que existen datos atípicos a nivel univariado en cada una de las variables.
+
+### z-score
+
+```{python}
+# Calculate z-score for each data point and compute its absolute value
+z_scores = zscore(ruidoso['Road_55dB'], nan_policy="omit")
+abs_z_scores = np.abs(z_scores)
+
+# Select the outliers using a threshold of 3
+outliers = ruidoso[abs_z_scores > 3]
+outliers.Road_55dB
+```
+
+```{python}
+# Calculate z-score for each data point and compute its absolute value
+z_scores = zscore(ruidoso['Road_60dB'], nan_policy="omit")
+abs_z_scores = np.abs(z_scores)
+
+# Select the outliers using a threshold of 3
+outliers = ruidoso[abs_z_scores > 3]
+outliers.Road_60dB
+```
+
+```{python}
+# Calculate z-score for each data point and compute its absolute value
+z_scores = zscore(ruidoso['Railways_65dB'], nan_policy="omit")
+abs_z_scores = np.abs(z_scores)
+
+# Select the outliers using a threshold of 3
+outliers = ruidoso[abs_z_scores > 3]
+outliers.Railways_65dB
+```
+
+```{python}
+# Calculate z-score for each data point and compute its absolute value
+z_scores = zscore(ruidoso['Industry_65dB'], nan_policy="omit")
+abs_z_scores = np.abs(z_scores)
+
+# Select the outliers using a threshold of 3
+outliers = ruidoso[abs_z_scores > 3]
+outliers.Industry_65dB
+```
+
+Empleando el método de zscore con un umbral de 3 a cada una de las variables, se puede observar que según este criterio solo hay 2 valores atípicos (observación 49 y 66) por variable exceptuando la variable **Industry_65dB** que solo tiene un valor atípico (observación 49). Sin embargo, no se puede confiar en los resultados de este criterio, ya que las distribuciones vistas anteriormente no son simétricas y no se distribuyen normal.
+
+### z-score modificado
+
+Este método pretende calcular la siguiente cantidad:
+
+$$
+M_i =  \frac{{0.6745*(x_i-Mediana)}}{{MAD}}
+$$
+
+Hay que tener en cuenta que la cantidad MAD no puede ser nulo.
+
+```{python}
+# Set threshold to 3.5
+mad = MAD(threshold = 3.5)
+
+# Convert the 'total' column into a 2D numpy array
+Road_55dB_reshaped = ruidoso['Road_55dB'].values.reshape(-1, 1)
+
+# Generate inline and outlier labels
+labels = mad.fit(Road_55dB_reshaped).labels_
+
+# Obtain number of outliers
+print(f'Number of outliers: {labels.sum()}')
+```
+
+```{python}
+outliers = ruidoso[labels == 1]
+outliers.Road_55dB
+```
+
+Usando el método de z-score modificado se ha encontrado 7 valores atípicos para la variable **Road_55dB**. Este criterio es más confiable que el z-score, ya que la distribución de esta variable es asimétrica.
+
+```{python}
+# Convert the 'total' column into a 2D numpy array
+Road_60dB_reshaped = ruidoso['Road_60dB'].values.reshape(-1, 1)
+
+# Generate inline and outlier labels
+labels = mad.fit(Road_60dB_reshaped).labels_
+
+# Obtain number of outliers
+print(f'Number of outliers: {labels.sum()}')
+```
+
+```{python}
+outliers = ruidoso[labels == 1]
+outliers.Road_60dB
+```
+
+Usando el método de z-score modificado se ha encontrado 10 valores atípicos para la variable **Road_60dB**. Este criterio es más confiable que el z-score, ya que la distribución de esta variable es asimétrica.
+
+```{python}
+# Convert the 'total' column into a 2D numpy array
+Railways_65dB_reshaped = ruidoso['Railways_65dB'].values.reshape(-1, 1)
+
+# Generate inline and outlier labels
+labels = mad.fit(Railways_65dB_reshaped).labels_
+
+# Obtain number of outliers
+print(f'Number of outliers: {labels.sum()}')
+```
+
+```{python}
+outliers = ruidoso[labels == 1]
+outliers.Railways_65dB
+```
+
+Usando el método de z-score modificado se ha encontrado 11 valores atípicos para la variable **Railways_65dB**. Este criterio es más confiable que el z-score, ya que la distribución de esta variable es asimétrica.
+
+```{python}
+# Eliminar filas con valores NaN en la columna 'Industry_65dB'
+ruidoso_cleaned = ruidoso.dropna(subset=['Industry_65dB'])
+
+# Convertir la columna 'Industry_65dB' a un arreglo numpy 2D
+Industry_65dB_cleaned = ruidoso_cleaned['Industry_65dB'].values.reshape(-1, 1)
+
+# Generate inline and outlier labels
+labels = mad.fit(Industry_65dB_cleaned).labels_
+
+# Obtain number of outliers
+print(f'Number of outliers: {labels.sum()}')
+```
+
+```{python}
+outliers = ruidoso_cleaned[labels == 1]
+outliers.Industry_65dB
+```
+
+```{python}
+# Obtain the MAD value
+mad_score = median_abs_deviation(ruidoso_cleaned['Industry_65dB']) # Industry_65dB
+mad_score
+```
+
+Usando el método de z-score modificado se ha encontrado 24 valores atípicos para la variable **Industry_65dB**. Este criterio presenta problemas ya que el MAD tiene el valor de 0, por lo tanto no se puede confiar en los resultados de la anterior salida.
+
+### Rango intercuartil (IQR)
+
+Primeramente, se crea una función de usuario **atipico_intercuartil** que permite encontrar los datos atípicos usando el método intercuartil, la función imprime un mensaje de cuántos datos atípicos halló bajo este método y retorna los datos atípicos de la respectiva variable.
+
+```{python}
+def atipico_intercuartil(data, variable):
+    '''
+    Descripción: función de usuario que permite hallar datos atípicos usando el método de rango intercuartil (IQR).
+
+    data: dataframe de pandas.
+    variable: variable a utilizar para hallar los datos atípicos. String
+
+    retorna: outliers[variable]
+    '''
+    # Calculate the percentiles
+    seventy_fifth = data[variable].quantile(0.75)
+    twenty_fifth = data[variable].quantile(0.25)
+
+    # Obtain IQR
+    iqr = seventy_fifth - twenty_fifth
+
+    # Upper and lower thresholds
+    upper = seventy_fifth + (1.5 * iqr)
+    lower = twenty_fifth - (1.5 * iqr)
+
+    # Subset the dataset
+    outliers = data[(data[variable] < lower) | (data[variable] > upper)]
+    print(f"Se detectan {len(outliers[variable])} valores atípicos en la variable {variable} usando el método intercuartil")
+    return outliers[variable]
+```
+
+```{python}
+atipico_intercuartil(ruidoso, "Road_55dB")
+```
+
+```{python}
+atipico_intercuartil(ruidoso, "Road_60dB")
+```
+
+```{python}
+atipico_intercuartil(ruidoso, "Railways_65dB")
+```
+
+```{python}
+atipico_intercuartil(ruidoso, "Industry_65dB")
+```
+
+En conclusión, este método puede ser el más adecuado para la detección de los datos atípicos a nivel univariado para los datos usados en este ejercicio, ya que este método no requiere que los datos se distribuyan como una normal y no presenta problemas numéricos como el método de z-score modificado para la variable **Industry_65db**.
+
+## d. ¿Se detectan valores atípicos a nivel multivariado?
+
+Teniendo en cuenta que existe un valor faltante y esto afecta el cálculo de la distancia de Mahalanobis, se procede a imputar el valor faltante por la mediana de la respectiva variable.
+
+```{python}
+ruidoso_sin_faltante = ruidoso.fillna(median(ruidoso.Industry_65dB))
+ruidoso_sin_faltante.tail()
+```
+
+### Distancia de Mahalanobis
+
+```{python}
+# Calculamos la matriz de covarianza de las variables
+cov_matrix = np.cov(ruidoso_sin_faltante, rowvar=False)
+
+# Calculamos la inversa de la matriz de covarianza
+cov_inv = np.linalg.inv(cov_matrix)
+
+# Calculamos la distancia de Mahalanobis para cada fila en el DataFrame
+dist_mahalanobis = []
+for row in ruidoso_sin_faltante.values:
+    dist = distance.mahalanobis(row, ruidoso_sin_faltante.mean(), cov_inv)
+    dist_mahalanobis.append(dist)
+
+# Agregamos la distancia de Mahalanobis como una nueva columna en el DataFrame
+ruidoso_sin_faltante['mahalanobis_distance'] = dist_mahalanobis
+```
+
+```{python}
+# Ordenamos el DataFrame por la columna de distancia de Mahalanobis en orden descendente
+df_sorted = ruidoso_sin_faltante.sort_values(by='mahalanobis_distance', ascending=False)
+
+# Seleccionamos aquellos registros con las distancias mayor a 2
+distancia_mayor_a_dos = df_sorted[df_sorted.mahalanobis_distance >= 2]
+distancia_mayor_a_dos
+```
+
+```{python}
+len(distancia_mayor_a_dos)
+```
+
+Usando la distancia de Mahalanobis y usando un criterio personal (distancia mayor o igual a 2), se han encontrado 11 valores atípicos a nivel multivariado.
+
+### Local Outlier Factor
+
+Para este método de búsqueda de datos atípicos, se usará los 5 vecinos más cercanos y no la configuración predeterminada.
+
+```{python}
+# Calculamos el LOF para las tres variables
+lof = LocalOutlierFactor(n_neighbors = 5)
+lof.fit_predict(ruidoso_sin_faltante)
+
+# Obtenemos los scores LOF para cada punto
+scores_lof = -lof.negative_outlier_factor_
+
+# Agregamos los scores LOF como una nueva columna en el DataFrame
+ruidoso_sin_faltante['lof_score'] = scores_lof
+
+# Mostramos el DataFrame con los scores LOF
+ruidoso_sin_faltante
+```
+
+```{python}
+# Ordenamos el DataFrame por la columna 'lof_score' en orden descendente
+df_sorted = ruidoso_sin_faltante.sort_values(by='lof_score', ascending=False)
+
+# Seleccionamos los primeros diez registros con los scores LOF más grandes
+primeros_diez_lof = df_sorted.head(10)
+primeros_diez_lof
+```
+
+```{python}
+distancia_mayor_a_dos.index
+```
+
+Del anterior dataframe ordenado de mayor a menor mediante el criterio lof_score, se puede observar que los primeros 5 registros tiene un lof_scores relativamente altos, por lo tanto estas observaciones se pueden considerar como potenciales atípicos a nivel multivariado. Cabe destarcar, que estos 5 registros también se consideran como atípicos usando el método de distancia de Mahalanobis.
+
+### Isolation Forest
+
+```{python}
+# Definimos la cantidad de árboles
+n_arboles = 300
+
+# Inicializamos y ajustamos el modelo Isolation Forest con la cantidad de árboles especificada
+isolation_forest = IsolationForest(n_estimators=n_arboles, random_state=42)
+puntajes_anomalia = isolation_forest.fit(ruidoso_sin_faltante)
+
+# Obtenemos los puntajes de anomalía para cada muestra
+puntajes_anomalia = isolation_forest.score_samples(ruidoso_sin_faltante)
+
+# Convertimos los puntajes de anomalía a valores positivos
+puntajes_anomalia = -puntajes_anomalia
+
+# Obtenemos las etiquetas de anomalía (inlier/outlier) para cada punto
+#etiquetas_anomalia = isolation_forest.predict(df_selected)
+
+# Agregamos las etiquetas de anomalía como una nueva columna en el DataFrame
+ruidoso_sin_faltante['puntajes_anomalia'] = puntajes_anomalia
+
+# Ordenamos el DataFrame por los puntajes de anomalía en orden descendente
+df_sorted = ruidoso_sin_faltante.sort_values(by='puntajes_anomalia', ascending=False)
+
+# Seleccionamos los primeros diez registros con los puntajes de anomalía más altos
+puntaje_mayor_a_un_medio = df_sorted[df_sorted.puntajes_anomalia > 0.5]
+puntaje_mayor_a_un_medio
+```
+
+```{python}
+len(puntaje_mayor_a_un_medio)
+```
+
+Usando el método de isolation forest con 300 árboles y un criterio personal (puntajes_anomalia > 0.5), se ha detectado 12 datos atípicos. Cabe destacar que los primeros 5 datos atípicos hallados coinciden con los hallados en los primeros dos métodos de detección de datos atípicos a nivel multivariado. Por lo tanto, se puede concluir que los datos con índices 49, 66, 15, 8 y 29 son potenciales atípicos a nivel multivariado.
+
+## e. Para el caso univariado, escoja una variable y realice un análisis sobre las implicaciones que tiene realizar diferentes tratamientos a los datos atípicos en la distribución de la respectiva variable.
+
+Para este ejercicio se elige la variable **Railways_65dB**. Nuevamente, se halla la distribución de dicha variable.
+
+```{python}
+sns.histplot(ruidoso['Railways_65dB'], kde=True)
+plt.title("Histograma y densidad de Railways_65dB")
+plt.show()
+```
+
+### Eliminación
+
+Para eliminar datos atípicos hay que estar seguro de que los outliers provengan de un error en la entrada de los datos, como un error humano o de medida, y no se pueda solucionar. Aquí, no hay seguridad sobre esto, sin embargo, se procede a eliminarlos para ver cuál es el efecto que tiene sobre la distribución original de los datos. El criterio de datos atípicos a usar será el de rango intercuartil.
+
+```{python}
+indices_excluir = atipico_intercuartil(ruidoso, "Railways_65dB").index
+```
+
+```{python}
+ruidoso_filtrado = ruidoso.drop(indices_excluir)
+ruidoso_filtrado.reset_index(drop = True, inplace=True)
+```
+
+```{python}
+sns.histplot(ruidoso_filtrado['Railways_65dB'], kde=True)
+plt.title("Histograma y densidad de Railways_65dB\n eliminando atípicos")
+plt.show()
+```
+
+Luego de la eliminación de estos atípicos, se puede observar que este proceso tuvo un impacto enorme en la distribución de los datos, la nueva distribución cuenta con una cola menos pesada.
+
+### Imputación
+
+En este método, los datos atípicos hallados por el método de rango inteercuartil serán reemplazados por la mediana de la variable.
+
+```{python}
+# Reemplazar los valores correspondientes a los índices dados por la mediana
+ruidoso_modificado = ruidoso.copy()
+ruidoso_modificado.loc[indices_excluir, 'Railways_65dB'] = median(ruidoso.Railways_65dB)
+```
+
+```{python}
+sns.histplot(ruidoso_filtrado['Railways_65dB'], kde=True)
+plt.title("Histograma y densidad de Railways_65dB\n usando imputación")
+plt.show()
+```
+
+Se puede observar que la imputación tuvo un efecto parecido al del anterior método.
+
+### Winsorización
+
+En este paso, se utiliza el método de winsorización para reemplezar el 10% de los valores más altos (7 datos aproximadamente) por los valores del percentil 90 de la distribución.
+
+```{python}
+ruidoso_winsorized = ruidoso.copy()
+ruidoso_winsorized['Railways_65dB'] = winsorize(ruidoso_winsorized['Railways_65dB'],\
+  limits = [0, 0.1], inplace = True)
+```
+
+```{python}
+sns.histplot(ruidoso_winsorized['Railways_65dB'], kde=True)
+plt.title("Histograma y densidad de Railways_65dB\n usando winsorización")
+plt.show()
+```
+
+Se puede observar que el efecto de usar winsorización sobre los datos es similar a los dos métodos anteriores, la distribución resultante tiene una cola menos pesada.
+
+# Punto 2
+
+## Carga de datos
+
+```{python}
+import pandas as pd
+import seaborn as sns
+from matplotlib import pyplot as plt
+from scipy import stats
+import numpy as np
+from itables import show
+from sklearn.linear_model import LinearRegression
+from fancyimpute  import IterativeImputer
+import miceforest as mf
+
+
+# data (as pandas dataframes) 
+
+data = pd.read_csv("data/auto-mpg.data-original.txt", sep = "|", header=None, names=["mpg", "cylinders", "displacement", "horsepower", "weight", "acceleration", "model_year", "origin", "car_name"])
+```
+
+```{python}
+data.info()
+```
+
+## En qué consiste este dataset y sus características
+
+Los datos contienen el consumo de combustible en millas por galón en ciudad de vehículos y sus características, las millas por galón se puede predecir en función de 3 atributos discretos multivariados y 4 atributos continuos.
+
+1.  mpg: (millas por galón) continua
+2.  cylinders: (cilindros) multi valuada discreta
+3.  displacement: (desplazamiento) continua
+4.  horsepower: (caballos de fuerza) continua
+5.  weight: (peso) continua
+6.  acceleration: (aceleración) continua
+7.  model_year: (año modelo) multi valuada discreta
+8.  origin: (origen) multi valuada discreta
+9. car_name: (nombre del carro) ID
+
+Como el ID car_name no contiene información relevante para datos faltantes la eliminaremos.
+
+Este dataset consiste de 398 filas y 8 columnas y puede descargarse mediante el sitio web [Auto MPG. UCI Machine Learning Repository.](https://doi.org/10.24432/C5859H).
+
+```{python}
+data = data.drop(columns=["car_name"])
+```
+
+## Análisis exploratorio para identificar la distribución de las variables usadas en la base de datos
+
+```{python}
+dfSummary(data, is_collapsible=False)
+```
+
+### Variables continuas
+
+```{python}
+for col in ["displacement", "horsepower", "weight", "acceleration"]:
+  # Create a scatterplot of --- vs 'acceleration'
+  sns.scatterplot(x=col, y='mpg', data=data)
+  
+  
+  plt.xlabel(f"{col}")
+  plt.ylabel(f"mpg")
+  plt.title(f"Grafica de dispersión {col} vs mpg")
+  
+  
+  plt.show()
+```
+
+```{python}
+# List of variables to plot
+X = ['displacement', 'horsepower', 'weight', 'acceleration']
+
+# Create a correlation matrix
+corr = data[X + ['mpg']].corr(method = "spearman")
+
+
+# Set up the matplotlib figure
+plt.figure(figsize=(8, 6))
+
+# Draw the heatmap with the mask and annotations
+sns.heatmap(corr, annot=True, cmap='coolwarm', vmin=-1, vmax=1,
+            xticklabels=X + ['mpg'], yticklabels=X + ['mpg'])
+
+# Add labels
+plt.title('Correlación: Variables vs. MPG', fontsize=14)
+plt.xlabel('Variables', fontsize=12)
+plt.ylabel('Variables', fontsize=12)
+
+# Show the plot
+plt.show()
+```
+
+Como podemos ver, para las variables **displacement**, **horsepower** y **weight** hay una relación inversamente proporcional con la variable mpg, mientras que para la variable **acceleration** la relación parece ser directamente proporcional.
+
+- El **desplazamiento** del motor es el volumen barrido combinado de los pistones dentro de los cilindros de un motor. Es uno de los factores determinantes de la potencia y cuánto combustible puede consumir un vehículo. En general, cuanto **mayor** sea el **desplazamiento** del motor, **más combustible** podrá consumir y **menos rendimiento** tendrá (millas por galón).
+
+- Típicamente, a mayor **potencia** (más caballos de fuerza, horsepower), menor eficiencia de combustible (menos millas por galón, mpg). 
+
+- A mayor **peso** (weight) de un vehículo, menores serán sus **millas por galón** debido a que se requiere más potencia del motor y más consumo de combustible para mover un vehículo más pesado.
+
+### Variables categoricas
+
+```{python}
+data["origin"] = data["origin"].replace({1: "USA", 2: "Europe", 3: "Asia"})
+```
+
+```{python}
+for col in ["model_year", "origin", "cylinders"]:
+  
+  sns.violinplot(x=col, y='mpg', bw_adjust=.5, inner="stick", data=data)
+  # Add labels and title
+  plt.xlabel(f"{col}")
+  plt.ylabel(f"mpg")
+  plt.title(f"Grafica de dispersión {col} vs mpg")
+  
+  # Display the plot
+  plt.show()
+```
+
+Para la variable **año de modelo**
+
+Se ve que entre más aumenta el año del modelo el rendimiento del combustible en millas es mayor, lo que se puede dar por mejoras en tecnología.
+
+Para la variable **origen**
+
+Se puede observar que el origen con mejor millas por galón es Asia mientras que el peor es USA.
+
+Para la variable **cilindros**
+
+Se observa que para 4 cilindros el rendimiento es alto, mientras que para 8 es bajo, esto puede ser por la relación proporcional que existe el numero de cilindros y la potencia, lo que puede afectar el rendimiento de la gasolina.
+
+
+## Datos faltantes en cada uno de las variables.
+
+
+En la siguiente tabla se encuentran los porcentajes de NAs para cada columna, podemos ver las columnas con NAs son **horsepower** con 1.5% de NAs y **mpg** con 1.97% de NAs
+
+```{python}
+tbl = data.isna().sum()/data.shape[0]*100
+show(tbl, caption="% de NAs para cada columna")
+```
+
+## ¿Cuál cree que es el mecanismo inherente a esos datos faltantes?
+
+Puede ser que la razón por las que las columnas **horsepower** y **mpg** contienen datos faltantes es porque se olvidaron registrarlo o no tenían la información disponible. Es decir, missing completely at random.
+## Técnicas de tratamiento de datos faltantes (vistas en clase)
+
+### Imputar datos faltantes en la columna horsepower y mpg
+
+Como vimos, estas columnas son continuas, por lo que vamos a realizar varias impútaciones para cada columna
+
+#### Usando Regresión Lineal
+
+Si nos devolvemos al análisis descriptivo podemos observar que tanto la variable horsepower como mpg tiene correlación con las demás variables continuas, por lo que se usará todas estas para hacer la regresión
+
+```{python}
+es_na_horsepower = data["horsepower"].isna()
+es_na_mpg = data["mpg"].isna()
+contiene_na = es_na_horsepower | es_na_mpg
+```
+
+##### Para mpg
+
+```{python}
+# Para mpg
+X = data[~contiene_na][['displacement', 'horsepower', 'weight', 'acceleration']].copy()
+y = data[~contiene_na]["mpg"].copy()
+
+reg = LinearRegression().fit(X, y)
+
+np.round(reg.score(X, y), 2)
+```
+
+Como podemos ver este modelo lineal tiene un $R^2$ del $0.71$, el cual es bueno si consideramos que son datos faltantes y esta alternativa es mejor a simplemente borrar las filas y perder información.
+
+```{python}
+X_pred = data[es_na_mpg][['displacement', 'horsepower', 'weight', 'acceleration']].copy()
+```
+
+Valores predichos para las filas con valores faltantes de horsepower:
+
+```{python}
+valores_mpg = reg.predict(X_pred)
+print(valores_mpg)
+```
+
+```{python}
+data["mpg_imp_con_rl"] = data["mpg"].values
+data.loc[es_na_mpg, "mpg_imp_con_rl"] = valores_mpg
+```
+
+##### Para horsepower
+
+```{python}
+# Para horsepower
+X = data[~contiene_na][['displacement', 'mpg', 'weight', 'acceleration']].copy()
+y = data[~contiene_na]["horsepower"].copy()
+
+reg = LinearRegression().fit(X, y)
+
+np.round(reg.score(X, y), 2)
+```
+
+Como podemos ver este modelo lineal tiene un $R^2$ del $0.89$, el cual es bueno considerando que es una RLS y los patrones de los datos parecían tener una relación no lineal, lo cual significa que en el caso de que sea muy necesario tener una alta precisión en la predicción se puede tratar de mejorar esta imputación aún más. 
+
+```{python}
+X_pred = data[es_na_horsepower][['displacement', 'mpg', 'weight', 'acceleration']].copy()
+```
+
+Valores predichos para las filas con valores faltantes de horsepower:
+
+```{python}
+valores_horsepower = reg.predict(X_pred)
+print(valores_horsepower)
+```
+
+```{python}
+data["horsepower_imp_con_rl"] = data["horsepower"].values
+data.loc[es_na_horsepower, "horsepower_imp_con_rl"] = valores_horsepower
+```
+
+
+#### Usando IterativeImputer
+
+Este imputador multivariado estima cada valor faltante a partir de todas las demás.
+
+Esta es una estrategia para imputar valores faltantes modelando cada característica con valores faltantes como una función de otras características de forma cíclica.
+
+Para [esta librería](https://scikit-learn.org/stable/modules/generated/sklearn.impute.IterativeImputer.html) podemos ver que tiene muchos más parámetros, en este caso usamos "imputation_order='ascending'" para indicar que el orden en que se va a realizar la imputación es empezando con columnas con menos valores faltantes a más, por lo que empezaria con horsepower y seguiria con mpg.
+
+```{python}
+# Crear una copia de las variables excluyendo la creada anteriormente e incluir solo columnas numericas
+data_para_hotdeck = data[[ 'mpg', 'displacement', 'weight', 'acceleration', 'horsepower']].copy()
+
+# Imputar valores faltantes utilizando el método de Hot-Deck
+imputer = IterativeImputer(imputation_order='ascending')
+data_imputed = imputer.fit_transform(data_para_hotdeck)
+
+# Agregar columna a data
+data["horsepower_imp_con_hotdeck"] = data_imputed[:, -1]
+data["mpg_imp_con_hotdeck"] = data_imputed[:, 0]
+```
+
+#### Usando miceforest
+
+La Imputación Múltiple mediante Ecuaciones Encadenadas 'rellena' (imputa) los datos faltantes en un conjunto de datos a través de una serie iterativa de modelos predictivos. En cada iteración, cada variable especificada en el conjunto de datos se imputa utilizando las otras variables del conjunto de datos. Estas iteraciones deben ejecutarse hasta que parezca que se ha alcanzado la convergencia.
+
+Con [este paquete](https://github.com/AnotherSamWilson/miceforest) usamos la metodología MICE, como se puede leer en su github, este usa el modelo **lightgbm**, el cual es un modelo basado en árboles de decisión.
+
+```{python}
+kds = mf.ImputationKernel(
+  data[['displacement', 'mpg', 'weight', 'acceleration', 'horsepower']].copy(),
+  save_all_iterations=True,
+  random_state=123
+)
+
+# Correr el algoritmo MICE en 3 iteraciones
+kds.mice(3)
+
+# Retornar el dataset
+data_mf = kds.complete_data()
+```
+
+```{python}
+data["horsepower_imp_con_mf"] = data_mf["horsepower"]
+data["mpg_imp_con_mf"] = data_mf["mpg"]
+```
+
+#### Otros modelos
+
+Se usaron los modelos anteriores porque los valores faltantes son numéricos, existen otros modelos que se pueden usar en casos donde los datos faltantes hacen parte de columnas de tipo categórico, por ejemplo imputaciones usando el modelo KNN.
+
+
+## Variación en la distribución de los datos al aplicar las técnicas de imputación de datos
+
+En cada método ejecutado se almacenó cada una de las columnas imputadas.
+
+### Para horsepower
+Como observamos, el porcentaje de datos es de solo el 1.5%, por lo que si comparamos las tres técnicas no se va a observar mayor diferencia.
+
+```{python}
+# Create a figure and axes
+fig, ax = plt.subplots(figsize=(10, 6))
+
+sns.kdeplot(data=data, x='horsepower', fill=True, label='Sin imputar', ax=ax)
+sns.kdeplot(data=data, x='horsepower_imp_con_rl', fill=True, label='Imputado con RLS', ax=ax)
+sns.kdeplot(data=data, x='horsepower_imp_con_hotdeck', fill=True, label='Imputado con HotDeck', ax=ax)
+sns.kdeplot(data=data, x='horsepower_imp_con_mf', fill=True, label='Imputado con MICE', ax=ax)
+
+ax.set_xlabel('Horsepower')
+ax.set_ylabel('Density')
+ax.set_title('Distribución de la columna Horsepower')
+
+ax.legend()
+
+plt.show()
+```
+
+```{python}
+
+plt.figure(figsize=(10, 6))
+data.hist(column=['horsepower', 'horsepower_imp_con_rl', 'horsepower_imp_con_hotdeck', 'horsepower_imp_con_mf'], alpha=0.5, layout=(1, 4), figsize=(18, 4))
+plt.tight_layout()
+plt.show()
+```
+
+Se puede observar que la densidad de los datos es muy parecida, esto se da ya que el % de NAs es una fracción pequeña de los datos.
+
+```{python}
+data[['horsepower', 'horsepower_imp_con_rl', 'horsepower_imp_con_hotdeck', 'horsepower_imp_con_mf']].describe()
+```
+
+También podemos observar que la media se desplazan levemente hacia abajo en todas las imputaciones, mientras que el máximo y el mínimo se mantienen constante. La mediana se mantiene constante excluyendo en la imputación con MICE.
+
+Se observa que existe una leve disminución en la variación de los datos imputados. 
+
+### Para MPG
+Como observamos, el porcentaje de datos faltantes para esta columna es de 1.9%, por lo que si comparamos nuevamente puede existir una mayor diferencia que con la columna horsepower.
+
+```{python}
+# Create a figure and axes
+fig, ax = plt.subplots(figsize=(10, 6))
+
+sns.kdeplot(data=data, x='mpg', fill=True, label='Sin imputar', ax=ax)
+sns.kdeplot(data=data, x='mpg_imp_con_rl', fill=True, label='Imputado con RLS', ax=ax)
+sns.kdeplot(data=data, x='mpg_imp_con_hotdeck', fill=True, label='Imputado con HotDeck', ax=ax)
+sns.kdeplot(data=data, x='mpg_imp_con_mf', fill=True, label='Imputado con MICE', ax=ax)
+
+ax.set_xlabel('mpg')
+ax.set_ylabel('Density')
+ax.set_title('Distribución de la columna mpg')
+
+ax.legend()
+
+plt.show()
+```
+
+```{python}
+plt.figure(figsize=(10, 6))
+data.hist(column=['mpg', 'mpg_imp_con_rl', 'mpg_imp_con_hotdeck', 'mpg_imp_con_mf'], alpha=0.5, layout=(1, 4), figsize=(18, 4))
+plt.tight_layout()
+plt.show()
+```
+
+Se puede observar que la densidad de los datos es muy parecida, también se observa que en la imputación con MICE hay una mayor densidad cerca a la mediana.
+
+```{python}
+data[['mpg', 'mpg_imp_con_rl', 'mpg_imp_con_hotdeck', 'mpg_imp_con_mf']].describe()
+```
+
+Observamos que nuevamente la media se desplaza levemente hacia abajo en todas las imputaciones, mientras que el máximo y el mínimo se mantienen constante. La mediana se mantiene constante excluyendo en la imputación con HotDeck.
+
+Se observa nuevamente una leve disminución en la variación de los datos imputados. 
+
+Estas metodologias parecen ser una muy buena alternativa a realizar un **drop_na** y así perder alrededor del 2% de la información.
+
